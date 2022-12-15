@@ -199,15 +199,20 @@ def death_gun(gun, aims):
             return True
 
 
-def plus_score(score, aims):
+def print_score(score):
     m = pygame.font.SysFont("comicsansms", 18)
     value = m.render("Ваш счёт: " + str(round(score)), True, RED)
     screen.blit(value, [10, 10])
+
+def update_score(a):
+    global score
+    score += a.cost
+
+def delete_dead_aims_and_update_score(aims, score):
     for a in aims:
         if a.health == 0:
-            value = m.render("Ваш счёт: " + str(round(score + a.cost)), True, RED)
+            update_score(a)
             aims.remove(a)
-
 
 pygame.init()
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
@@ -228,15 +233,16 @@ score = 0
 _ = Aim(screen)
 aims.append(_)
 
+sec = pygame.font.SysFont("comicsansms", 18)
+time_text = sec.render("Время игры: " + str(counter), True, RED)
+timer_event = pygame.USEREVENT + 1
+pygame.time.set_timer(timer_event, 1000)
+
 while not finished:
     screen.blit(img, (0, 0))
-
-    plus_score(score, aims)
-
-    sec = pygame.font.SysFont("comicsansms", 18)
-    time_text = sec.render("Время игры: " + str(counter), True, RED)
-    timer_event = pygame.USEREVENT + 1
-    pygame.time.set_timer(timer_event, 1000)
+    gun.shooting()
+    delete_dead_aims_and_update_score(aims, score)
+    print_score(score)
 
     gun.vis_parts()
     gun.motion()
@@ -258,13 +264,12 @@ while not finished:
     if death_gun(gun, aims):
         finished = True
 
-    plus_score(score, aims)
+    #plus_score(score, aims)
 
     if count % 125 == 0:
         i = Aim(screen)
         aims.append(i)
 
-    clock.tick(FPS)
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             finished = True
@@ -274,7 +279,9 @@ while not finished:
 
     screen.blit(time_text, [10, 30])
 
-    gun.shooting()
+    #gun.shooting()
     pygame.display.update()
+    clock.tick(FPS)
+
 
 pygame.quit()
