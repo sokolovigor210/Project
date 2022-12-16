@@ -3,8 +3,8 @@ import time
 from random import choice
 import math
 
-WIDTH = 800
-HEIGHT = 600
+WIDTH = 1000
+HEIGHT = 800
 RED = 0xFF0000
 BLUE = 0x0000FF
 YELLOW = 0xFFC91F
@@ -59,7 +59,7 @@ class Gun:
         self.m_low = 10
         self.state = False
         self.last = pygame.time.get_ticks()
-        self.cooldown = 25
+        self.cooldown = 20
         self.health = 1
         self.left_wheel = 0
         self.right_wheel = 0
@@ -121,13 +121,13 @@ class Aim:
         self.y0 = 50
         self.x = self.x0
         self.y = self.y0
-        self.r = 20
+        self.r = 25
         self.color = RED
-        self.health = 3
+        self.health = 20
         self.g = 9.81
-        self.vx = 8
+        self.vx = 4
         self.vy = 0
-        self.ky = 0.98
+        self.ky = 0.99
         self.inside = False
         self.last = pygame.time.get_ticks()
         self.cooldown = 150
@@ -141,15 +141,15 @@ class Aim:
 
     def moving(self, dt, obj):
         if self.x0 == -10:
-            self.x += self.vx * dt / 2
+            self.x += self.vx * dt
         if self.x0 == WIDTH + 40:
-            self.x -= self.vx * dt / 2
+            self.x -= self.vx * dt
         self.vy += self.g * dt
         self.y += self.vy * dt
         if self.inside:
-            if self.y + self.r >= obj.y + obj.wh_R:
+            if self.y + self.r >= obj.y + obj.right_wheel.height / 2:
                 self.vy = -self.vy * self.ky
-                self.y -= self.y + self.r - (obj.y + obj.wh_R)
+                self.y -= self.y + self.r - (obj.y + obj.right_wheel.height / 2)
             if self.x + self.r >= WIDTH:
                 self.vx = -self.vx
                 self.x -= self.x + self.r - WIDTH
@@ -164,10 +164,11 @@ class Aim:
             new_aim = Aim(self.screen)
             aims.append(new_aim)
 
-    def extra_del(self, aims, gun):
-        if self.y - (gun.wh_R - self.r) == gun.y and self.vy >= 0:
-            pygame.time.delay(10)
+    def if_player_lose(self, aims, gun):
+        global finished
+        if (self.y - self.r) >= (gun.y - gun.muzzle.height) and abs(self.vy) <= 20:
             aims.remove(a)
+            finished = True
 
     def draw_aim(self):
         pygame.draw.circle(self.screen, self.color, (self.x, self.y), self.r)
@@ -208,20 +209,35 @@ def update_score(a):
     global score
     score += a.cost
 
-def delete_dead_aims_and_update_score(aims, score):
+def delete_dead_aims_and_update(aims):
     for a in aims:
-        if a.health == 0:
+        if a.health <= 0:
             update_score(a)
             aims.remove(a)
+            update_time()
+
+def update_time():
+    global dt
+    dt *= 1.1
+
+def save_last_result(name, score, counter):
+    with open ('last result.txt', 'w') as file:
+        file.write('Имя игрока:' + name)
+        file.write('Результат:' + str(score))
+        file.write('Время игровой сессии:' + str(counter))
+        print('Ваш результат:', score)
+        print('Время Вашей игровой сессии:', counter,  'секунд(-ы)')
+
 
 pygame.init()
+name = input('Введите ваше имя: ')
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 img = pygame.image.load('work_screen.jpg').convert()
 pygame.display.set_caption('Ball Blast')
 
 clock = pygame.time.Clock()
 FPS = 30
-dt = clock.tick(FPS) / 60
+dt = clock.tick(FPS) / 100
 finished = False
 gun = Gun(screen)
 bullets = []
@@ -230,8 +246,8 @@ count = 0
 counter = 0
 score = 0
 
-_ = Aim(screen)
-aims.append(_)
+first_aim = Aim(screen)
+aims.append(first_aim)
 
 sec = pygame.font.SysFont("comicsansms", 18)
 time_text = sec.render("Время игры: " + str(counter), True, RED)
@@ -241,7 +257,7 @@ pygame.time.set_timer(timer_event, 1000)
 while not finished:
     screen.blit(img, (0, 0))
     gun.shooting()
-    delete_dead_aims_and_update_score(aims, score)
+    delete_dead_aims_and_update(aims)
     print_score(score)
 
     gun.vis_parts()
@@ -255,7 +271,7 @@ while not finished:
         a.draw_aim()
         a.check_coords()
         a.moving(dt, gun)
-        a.extra_del(aims, gun)
+        a.if_player_lose(aims, gun)
 
     count += 1
 
@@ -263,8 +279,6 @@ while not finished:
 
     if death_gun(gun, aims):
         finished = True
-
-    #plus_score(score, aims)
 
     if count % 125 == 0:
         i = Aim(screen)
@@ -279,9 +293,9 @@ while not finished:
 
     screen.blit(time_text, [10, 30])
 
-    #gun.shooting()
     pygame.display.update()
     clock.tick(FPS)
 
-
 pygame.quit()
+
+save_last_result(name, score, counter)
