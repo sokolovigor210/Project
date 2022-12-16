@@ -1,7 +1,5 @@
 import pygame
-import time
 from random import choice
-import math
 
 WIDTH = 1000
 HEIGHT = 800
@@ -115,10 +113,10 @@ class Gun:
 
 
 class Aim:
-    def __init__(self, screen):
+    def __init__(self, screen, x=choice(AIM_X), y=50):
         self.screen = screen
-        self.x0 = choice(AIM_X)
-        self.y0 = 50
+        self.x0 = x
+        self.y0 = y
         self.x = self.x0
         self.y = self.y0
         self.r = 25
@@ -129,6 +127,7 @@ class Aim:
         self.vy = 0
         self.ky = 0.99
         self.inside = False
+        self.type = 'aim'
         self.last = pygame.time.get_ticks()
         self.cooldown = 150
         self.cost = 500
@@ -140,10 +139,14 @@ class Aim:
             self.inside = False
 
     def moving(self, dt, obj):
-        if self.x0 == -10:
+        if self.x0 == -10 and self.type == 'aim':
             self.x += self.vx * dt
-        if self.x0 == WIDTH + 40:
+        if self.x0 == WIDTH + 40 and self.type == 'aim':
             self.x -= self.vx * dt
+        if self.type == 'left_splinter':
+            self.x -= self.vx * dt
+        if self.type == 'right_splinter':
+            self.x += self.vx * dt
         self.vy += self.g * dt
         self.y += self.vy * dt
         if self.inside:
@@ -156,13 +159,6 @@ class Aim:
             if self.x < self.r:
                 self.vx = -self.vx
                 self.x += self.r - self.x
-
-    def creation(self):
-        now = pygame.time.get_ticks()
-        if now - self.last >= self.cooldown:
-            self.last = now
-            new_aim = Aim(self.screen)
-            aims.append(new_aim)
 
     def if_player_lose(self, aims, gun):
         global finished
@@ -199,6 +195,20 @@ def death_gun(gun, aims):
                 rect.colliderect(gun.right_wheel):
             return True
 
+def creating_splinters(a):
+    splinter1 = Aim(screen, a.x - a.r, a.y)
+    splinter1.vy = -70
+    splinter1.health = 10
+    splinter1.inside = True
+    splinter1.type = 'left_splinter'
+    splinters.append(splinter1)
+    splinter2 = Aim(screen, a.x + a.r, a.y)
+    splinter2.vy = -70
+    splinter2.health = 10
+    splinter2.inside = True
+    splinter1.type = 'right_splinter'
+    splinters.append(splinter2)
+
 
 def print_score(score):
     m = pygame.font.SysFont("comicsansms", 18)
@@ -209,11 +219,20 @@ def update_score(a):
     global score
     score += a.cost
 
-def delete_dead_aims_and_update(aims):
-    for a in aims:
+def delete_dead_aims_and_update(massive):
+    for a in massive:
         if a.health <= 0:
             update_score(a)
-            aims.remove(a)
+            massive.remove(a)
+            update_time()
+            if a.type == 'aim':
+                creating_splinters(a)
+
+def delete_dead_splinters_and_update(massive):
+    for s in massive:
+        if s.health <= 0:
+            update_score(s)
+            massive.remove(s)
             update_time()
 
 def update_time():
@@ -222,10 +241,12 @@ def update_time():
 
 def save_last_result(name, score, counter):
     with open ('last result.txt', 'w') as file:
-        file.write('Имя игрока:' + name)
-        file.write('Результат:' + str(score))
-        file.write('Время игровой сессии:' + str(counter))
-        print('Ваш результат:', score)
+        file.write("%s\n" % ('Имя игрока: ' + name))
+        file.write("%s\n" % ('Результат: ' + str(score) + str(' (') + 'целей уничтожено: '
+                             + str(round(score / 500)) + ')'))
+        file.write("%s\n" % ('Время игровой сессии: ' + str(counter)))
+        print('Результат: ' + str(score) + str(' (') + 'целей уничтожено: '
+                             + str(round(score / 500)) + ')')
         print('Время Вашей игровой сессии:', counter,  'секунд(-ы)')
 
 
@@ -242,6 +263,7 @@ finished = False
 gun = Gun(screen)
 bullets = []
 aims = []
+splinters = []
 count = 0
 counter = 0
 score = 0
@@ -258,6 +280,7 @@ while not finished:
     screen.blit(img, (0, 0))
     gun.shooting()
     delete_dead_aims_and_update(aims)
+    delete_dead_splinters_and_update(splinters)
     print_score(score)
 
     gun.vis_parts()
@@ -273,14 +296,20 @@ while not finished:
         a.moving(dt, gun)
         a.if_player_lose(aims, gun)
 
+    for s in splinters:
+        s.draw_aim()
+        s.moving(dt, gun)
+        s.if_player_lose(aims, gun)
+
     count += 1
 
     collision(aims, bullets)
+    collision(splinters, bullets)
 
-    if death_gun(gun, aims):
+    if death_gun(gun, aims) or death_gun(gun, splinters):
         finished = True
 
-    if count % 125 == 0:
+    if count % 400 == 0:
         i = Aim(screen)
         aims.append(i)
 
