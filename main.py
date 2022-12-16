@@ -18,6 +18,11 @@ AIM_X = [-10, WIDTH + 40]
 
 
 class Bullet:
+    """
+    Конструктор класса Bullet (снаряды пушки).
+    Содержит координаты, полуширину, полувысоту, цвет пули,
+    а также индикатор того, что пуля находится в пределах экрана.
+    """
     def __init__(self, screen, x, y):
         self.screen = screen
         self.x = x
@@ -28,19 +33,37 @@ class Bullet:
         self.outside = False
 
     def move(self, dt):
+        """
+        Осуществляет движение пули по экрану
+        param dt: единица внутриигрового времени.
+        """
         self.y -= self.vy * dt
 
     def draw_bul(self):
+        """
+        Осуществляет рисовку пули на экране.
+        """
         pygame.draw.rect(self.screen, self.color,
                          (self.x - self.r, self.y - self.r,
                           2 * self.r, 2 * self.r), 2 * self.r)
 
     def deleting(self, obj):
+        """
+        Осуществляет удаление пуль, вылетевших за пределы экрана
+        param obj: объект (пуля), который удаляется из общего массива.
+        """
         if self.y + self.r < -2 * self.r:
             bullets.remove(obj)
 
 
 class Gun:
+    """
+    Конструктор класса Gun (пушка).
+    Содержит координаты оси симметрии пушки, скорость пушки, цвет всех
+    её составляющих, параметры её колёс, дула и балки, соединяющей колёса.
+    Помимо этого, содержит индикатор того, что пушка стреляет; поля, осуществляющие
+    эффект стрельбы с задержкой.
+    """
     def __init__(self, screen):
         self.screen = screen
         self.x = WIDTH / 2
@@ -55,15 +78,18 @@ class Gun:
         self.m_height = 80
         self.m_width = 40
         self.m_low = 10
-        self.state = False
-        self.last = pygame.time.get_ticks()
-        self.cooldown = 20
-        self.health = 1
+        self.state = False  # индикатор того, что пушка стреляет
+        self.last = pygame.time.get_ticks() # временные индикаторы
+        self.cooldown = 20                  # для задержки стрельбы
+        self.health = 1  # здоровье пушки
         self.left_wheel = 0
         self.right_wheel = 0
         self.muzzle = 0
 
     def vis_parts(self):
+        """
+        Осуществление отрисовки частей пушки.
+        """
         self.left_wheel = pygame.Rect(self.x - self.wh_l -
                                       self.wh_R / (2 ** 0.5),
                                       self.y - self.wh_R / (2 ** 0.5),
@@ -79,7 +105,8 @@ class Gun:
         pygame.draw.line(self.screen, self.bar_col,
                          (self.x - self.wh_l, self.y),
                          (self.x + self.wh_l, self.y), 8)
-
+        # проверка того, что пушка стреляет, для \
+        # реализации физического эффекта
         if self.state is True:
             self.muzzle = pygame.Rect(self.x - self.m_width / 2,
                                       self.y + self.m_low - self.m_height,
@@ -92,6 +119,9 @@ class Gun:
             pygame.draw.rect(self.screen, self.m_col, self.muzzle)
 
     def motion(self):
+        """
+        Осуществление движения пушки с помощью "стрелок" на клавиатуре.
+        """
         key = pygame.key.get_pressed()
 
         if key[pygame.K_LEFT] and (self.x - self.wh_l - self.wh_R) > 0:
@@ -104,6 +134,9 @@ class Gun:
             self.state = False
 
     def shooting(self):
+        """
+        Осуществление стрельбы пушки при движении.
+        """
         now = pygame.time.get_ticks()
         if now - self.last >= self.cooldown and self.state is True:
             self.last = now
@@ -113,6 +146,14 @@ class Gun:
 
 
 class Aim:
+    """
+    Конструктор класса Aim (цель).
+    Содержит начальные координаты цели (за пределами экрана), мгновенные
+    координаты цели, её радиус, количество жизней, цвет, скорость, параметр затухания
+    при соудареннии, а также индикатор того, что цель находится в пределах
+    игрового поля, индикатор типа цели (основная или осколок), "стоимость" цели
+    в очках.
+    """
     def __init__(self, screen, x=choice(AIM_X), y=50):
         self.screen = screen
         self.x0 = x
@@ -125,20 +166,29 @@ class Aim:
         self.g = 9.81
         self.vx = 4
         self.vy = 0
-        self.ky = 0.99
+        self.ky = 0.999  # коэффициент затухания
         self.inside = False
         self.type = 'aim'
         self.last = pygame.time.get_ticks()
-        self.cooldown = 150
         self.cost = 500
 
     def check_coords(self):
+        """
+        Проверка, находится ли цель внутри игрового поля.
+        """
         if self.x - self.r >= 0 or self.x + self.r <= WIDTH:
             self.inside = True
         else:
             self.inside = False
 
     def moving(self, dt, obj):
+        """
+        Осуществление движения целей в зависимости от места появления, а также её типа.
+        Реализация отскоков от игрового поля.
+        param dt: единица внутриигрового времени.
+        param obj: объект, с координатами которого сравниваются координаты цели
+                   для отскока
+        """
         if self.x0 == -10 and self.type == 'aim':
             self.x += self.vx * dt
         if self.x0 == WIDTH + 40 and self.type == 'aim':
@@ -161,12 +211,20 @@ class Aim:
                 self.x += self.r - self.x
 
     def if_player_lose(self, aims, gun):
+        """
+        Реализация проигрыша игрока при условии, что цель опустилась слишком низко.
+        param aims: массив, где хранятся все основные цели
+        param gun: пушка
+        """
         global finished
         if (self.y - self.r) >= (gun.y - gun.muzzle.height) and abs(self.vy) <= 20:
             aims.remove(a)
             finished = True
 
     def draw_aim(self):
+        """
+        Реализация отрисовки целей.
+        """
         pygame.draw.circle(self.screen, self.color, (self.x, self.y), self.r)
         m = pygame.font.SysFont("comicsansms", 16)
         value = m.render(str(round(self.health)), True, BLACK)
@@ -174,6 +232,11 @@ class Aim:
 
 
 def collision(aims, bullets):
+    """
+    Реализация уничтожения пулями целей.
+    param aims: массив, где хранятся все основные цели
+    param bullets: массив, где хранятся все пули
+    """
     for a in aims:
         for b in bullets:
             rect1 = pygame.Rect(b.x, b.y, 2 * b.r, 2 * b.r)
@@ -186,6 +249,11 @@ def collision(aims, bullets):
 
 
 def death_gun(gun, aims):
+    """
+    Реализация уничтожения пулями пушки.
+    param aims: массив, где хранятся все основные цели
+    param gun: пушка
+    """
     for a in aims:
         rect = pygame.Rect(a.x - a.r / (2 ** 0.5),
                            a.y - a.r / (2 ** 0.5),
@@ -195,7 +263,11 @@ def death_gun(gun, aims):
                 rect.colliderect(gun.right_wheel):
             return True
 
+
 def creating_splinters(a):
+    """
+    Создание двух осколков при уничтожении основной цели.
+    """
     splinter1 = Aim(screen, a.x - a.r, a.y)
     splinter1.vy = -70
     splinter1.health = 10
@@ -211,35 +283,71 @@ def creating_splinters(a):
 
 
 def print_score(score):
+    """
+    Создание интерфейса счёта игрока.
+    param score: счёт игрока
+    """
     m = pygame.font.SysFont("comicsansms", 18)
     value = m.render("Ваш счёт: " + str(round(score)), True, RED)
     screen.blit(value, [10, 10])
 
+
 def update_score(a):
+    """
+    Обновление счёта игрока при уничтожении цели.
+    param score: счёт игрока
+    """
     global score
     score += a.cost
 
+
+def update_time():
+    """
+    Ускорение игры при каждом уничтожении пули.
+    """
+    global dt
+    dt *= 1.01
+
+
 def delete_dead_aims_and_update(massive):
+    """
+    Функция реализует обновление ряда параметров при уничтожении основной цели:
+    - убирает уничтоженную цель из массива;
+    - вызывает функцию обновления счёта;
+    - вызывает функцию ускорения игры;
+    - вызывает функцию создания осколков.
+    param massive: массив с целями
+    """
     for a in massive:
         if a.health <= 0:
             update_score(a)
             massive.remove(a)
             update_time()
-            if a.type == 'aim':
-                creating_splinters(a)
+            creating_splinters(a)
+
 
 def delete_dead_splinters_and_update(massive):
+    """
+    Функция реализует обновление ряда параметров при уничтожении осколка:
+    - убирает уничтоженный осколок из массива;
+    - вызывает функцию обновления счёта;
+    - вызывает функцию ускорения игры;
+    param massive: массив с осколками
+    """
     for s in massive:
         if s.health <= 0:
             update_score(s)
             massive.remove(s)
             update_time()
 
-def update_time():
-    global dt
-    dt *= 1.1
 
 def save_last_result(name, score, counter):
+    """
+    Записывает в текстовый файл информацию о последней игре
+    param name: имя игрока
+    param score: результат игрока
+    param counter: время игровой сессии игрока
+    """
     with open ('last result.txt', 'w') as file:
         file.write("%s\n" % ('Имя игрока: ' + name))
         file.write("%s\n" % ('Результат: ' + str(score) + str(' (') + 'целей уничтожено: '
@@ -309,7 +417,7 @@ while not finished:
     if death_gun(gun, aims) or death_gun(gun, splinters):
         finished = True
 
-    if count % 400 == 0:
+    if count % 300 == 0:
         i = Aim(screen)
         aims.append(i)
 
