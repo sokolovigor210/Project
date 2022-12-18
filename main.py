@@ -18,28 +18,28 @@ AIM_X = [-10, WIDTH + 40]
 
 
 class Bullet:
-    """
-    Конструктор класса Bullet (снаряды пушки).
-    Содержит координаты, полуширину, полувысоту, цвет пули,
-    а также индикатор того, что пуля находится в пределах экрана.
-    """
     def __init__(self, screen, x, y):
+        """
+        Конструктор класса Bullet (снаряды пушки).
+        Содержит координаты, полуширину, полувысоту, цвет пули,
+        а также индикатор того, что пуля находится в пределах экрана.
+        """
         self.screen = screen
         self.x = x
         self.y = y
         self.r = 8
-        self.v = self.vy = 30
+        self.v = self.vy = -30
         self.color = choice(GAME_COLORS)
         self.outside = False
 
     def move(self, dt):
         """
-        Осуществляет движение пули по экрану
+        Осуществляет движение пули по экрану.
         param dt: единица внутриигрового времени.
         """
-        self.y -= self.vy * dt
+        self.y += self.vy * dt
 
-    def draw_bul(self):
+    def draw(self):
         """
         Осуществляет рисовку пули на экране.
         """
@@ -57,14 +57,14 @@ class Bullet:
 
 
 class Gun:
-    """
-    Конструктор класса Gun (пушка).
-    Содержит координаты оси симметрии пушки, скорость пушки, цвет всех
-    её составляющих, параметры её колёс, дула и балки, соединяющей колёса.
-    Помимо этого, содержит индикатор того, что пушка стреляет; поля, осуществляющие
-    эффект стрельбы с задержкой.
-    """
     def __init__(self, screen):
+        """
+        Конструктор класса Gun (пушка).
+        Содержит координаты оси симметрии пушки, скорость пушки, цвет всех
+        её составляющих, параметры её колёс, дула и балки, соединяющей колёса.
+        Помимо этого, содержит индикатор того, что пушка стреляет; поля, осуществляющие
+        эффект стрельбы с задержкой.
+        """
         self.screen = screen
         self.x = WIDTH / 2
         self.y = HEIGHT - 50
@@ -86,7 +86,7 @@ class Gun:
         self.right_wheel = 0
         self.muzzle = 0
 
-    def vis_parts(self):
+    def draw(self):
         """
         Осуществление отрисовки частей пушки.
         """
@@ -176,10 +176,8 @@ class Aim:
         """
         Проверка, находится ли цель внутри игрового поля.
         """
-        if self.x - self.r >= 0 or self.x + self.r <= WIDTH:
-            self.inside = True
-        else:
-            self.inside = False
+        self.inside = True if self.x - self.r >= 0 or \
+                              self.x + self.r <= WIDTH else False
 
     def moving(self, dt, obj):
         """
@@ -210,18 +208,17 @@ class Aim:
                 self.vx = -self.vx
                 self.x += self.r - self.x
 
-    def if_player_lose(self, aims, gun):
+    def check_player_lose(self, aims, gun):
         """
         Реализация проигрыша игрока при условии, что цель опустилась слишком низко.
         param aims: массив, где хранятся все основные цели
         param gun: пушка
         """
-        global finished
         if (self.y - self.r) >= (gun.y - gun.muzzle.height) and abs(self.vy) <= 20:
             aims.remove(a)
-            finished = True
+            return True
 
-    def draw_aim(self):
+    def draw(self):
         """
         Реализация отрисовки целей.
         """
@@ -391,23 +388,25 @@ while not finished:
     delete_dead_splinters_and_update(splinters)
     print_score(score)
 
-    gun.vis_parts()
+    gun.draw()
     gun.motion()
     for b in bullets:
-        b.draw_bul()
+        b.draw()
         b.move(dt)
         b.deleting(b)
 
     for a in aims:
-        a.draw_aim()
+        a.draw()
         a.check_coords()
         a.moving(dt, gun)
-        a.if_player_lose(aims, gun)
+        if a.check_player_lose(aims, gun) == True:
+            finished = True
 
     for s in splinters:
-        s.draw_aim()
+        s.draw()
         s.moving(dt, gun)
-        s.if_player_lose(aims, gun)
+        if s.check_player_lose(aims, gun) == True:
+            finished = True
 
     count += 1
 
