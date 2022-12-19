@@ -32,12 +32,16 @@ class Bullet:
         self.color = choice(GAME_COLORS)
         self.outside = False
 
-    def move(self, dt):
+    def move(self, dt, obj, massive):
         """
         Осуществляет движение пули по экрану.
+        Осуществляет удаление пуль, вылетевших за пределы экрана.
+        param obj: объект (пуля), который удаляется из общего массива.
         param dt: единица внутриигрового времени.
         """
         self.y += self.vy * dt
+        if self.y + self.r < -2 * self.r:
+            massive.remove(obj)
 
     def draw(self):
         """
@@ -47,13 +51,17 @@ class Bullet:
                          (self.x - self.r, self.y - self.r,
                           2 * self.r, 2 * self.r), 2 * self.r)
 
-    def deleting(self, obj):
+    def update(self, dt, subj, obj, massive):
         """
-        Осуществляет удаление пуль, вылетевших за пределы экрана
+        Осуществление контроля пуль на экране.
+        param subj: непосредственно сам объект контроля.
         param obj: объект (пуля), который удаляется из общего массива.
+        param dt: единица внутриигрового времени.
+        return exit: переменная, сообщающая о проигрыше игрока
         """
-        if self.y + self.r < -2 * self.r:
-            bullets.remove(obj)
+        global end
+        subj.move(dt, obj, massive)
+        subj.draw()
 
 
 class Gun:
@@ -179,7 +187,7 @@ class Aim:
         self.inside = True if self.x - self.r >= 0 or \
             self.x + self.r <= WIDTH else False
 
-    def move(self, dt, obj):
+    def move(self, dt, gun):
         """
         Осуществление движения целей в зависимости от места появления
         а также её типа. Реализация отскоков от игрового поля.
@@ -198,10 +206,10 @@ class Aim:
         self.vy += self.g * dt
         self.y += self.vy * dt
         if self.inside:
-            if self.y + self.r >= obj.y + obj.right_wheel.height / 2:
+            if self.y + self.r >= gun.y + gun.right_wheel.height / 2:
                 self.vy = -self.vy * self.ky
                 self.y -= \
-                    self.y + self.r - (obj.y + obj.right_wheel.height / 2)
+                    self.y + self.r - (gun.y + gun.right_wheel.height / 2)
             if self.x + self.r >= WIDTH:
                 self.vx = -self.vx
                 self.x -= self.x + self.r - WIDTH
@@ -209,16 +217,17 @@ class Aim:
                 self.vx = -self.vx
                 self.x += self.r - self.x
 
-    def check_player_lose(self, aims, gun):
+    def check_player_lose(self, subj, aims, gun):
         """
         Реализация проигрыша игрока при условии, что цель
         опустилась слишком низко.
-        param aims: массив, где хранятся все основные цели
-        param gun: пушка
+        param subj: непосредственно сама цель
+        param aims: массив, где хранятся все основные цели;
+        param gun: пушка.
         """
         if (self.y - self.r) >= (gun.y - gun.muzzle.height) and\
                 abs(self.vy) <= 20:
-            aims.remove(a)
+            aims.remove(subj)
             return True
 
     def draw(self):
@@ -229,6 +238,22 @@ class Aim:
         m = pygame.font.SysFont("comicsansms", 16)
         value = m.render(str(round(self.health)), True, BLACK)
         screen.blit(value, [self.x - self.r / 2, self.y - self.r / 2])
+
+    def update(self, dt, subj, obj, massive):
+        """
+        Осуществления контроля движения целей по экрану.
+        param dt: единица внутриигрового времени
+        param subj: непосредственно сам субъект контроля
+        param obj: объект, с координатами которого сравниваются
+        координаты цели для отскока, а также для контроля соударений
+        param massive: массив, где хранятся основные цели или осколки
+        return end: переменная, сообщающая о проигрыше игрока
+        """
+        global end
+        subj.draw()
+        subj.check_coords()
+        subj.move(dt, gun)
+        end = subj.check_player_lose(subj, massive, gun)
 
 
 def collision(aims, bullets):
@@ -374,21 +399,11 @@ while not finished:
 
     gun.draw()
     gun.move()
-    for b in bullets:
-        b.draw()
-        b.move(dt)
-        b.deleting(b)
 
-    for a in aims:
-        a.draw()
-        a.check_coords()
-        a.move(dt, gun)
-        finished = a.check_player_lose(aims, gun)
-
-    for s in splinters:
-        s.draw()
-        s.move(dt, gun)
-        finished = s.check_player_lose(aims, gun)
+    objects = [bullets, aims, splinters]
+    for i in objects:
+        for x in i:
+            x.update(dt, x, x, i)
 
     count += 1
 
