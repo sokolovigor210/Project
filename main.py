@@ -118,7 +118,7 @@ class Gun:
                                       self.m_width, self.m_height)
             pygame.draw.rect(self.screen, self.m_col, self.muzzle)
 
-    def motion(self):
+    def move(self):
         """
         Осуществление движения пушки с помощью "стрелок" на клавиатуре.
         """
@@ -179,7 +179,7 @@ class Aim:
         self.inside = True if self.x - self.r >= 0 or \
             self.x + self.r <= WIDTH else False
 
-    def moving(self, dt, obj):
+    def move(self, dt, obj):
         """
         Осуществление движения целей в зависимости от места появления
         а также её типа. Реализация отскоков от игрового поля.
@@ -303,7 +303,7 @@ def update_score(a):
 
 def update_time():
     """
-    Ускорение игры при каждом уничтожении пули.
+    Ускорение игры при каждом уничтожении цели.
     """
     global dt
     dt *= 1.01
@@ -381,7 +381,7 @@ while not finished:
     print_score(score)
 
     gun.draw()
-    gun.motion()
+    gun.move()
     for b in bullets:
         b.draw()
         b.move(dt)
@@ -390,12 +390,12 @@ while not finished:
     for a in aims:
         a.draw()
         a.check_coords()
-        a.moving(dt, gun)
+        a.move(dt, gun)
         finished = a.check_player_lose(aims, gun)
 
     for s in splinters:
         s.draw()
-        s.moving(dt, gun)
+        s.move(dt, gun)
         finished = s.check_player_lose(aims, gun)
 
     count += 1
