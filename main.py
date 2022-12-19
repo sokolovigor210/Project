@@ -146,7 +146,7 @@ class Gun:
 
 
 class Aim:
-    def __init__(self, screen, x=choice(AIM_X), y=50):
+    def __init__(self, screen, type, health, vy, state, x=choice(AIM_X), y=50):
         """
         Конструктор класса Aim (цель).
         Содержит начальные координаты цели (за пределами экрана), мгновенные
@@ -162,13 +162,13 @@ class Aim:
         self.y = self.y0
         self.r = 25
         self.color = RED
-        self.health = 20
+        self.health = int(health)
         self.g = 9.81
         self.vx = 4
-        self.vy = 0
+        self.vy = int(vy)
         self.ky = 0.999  # коэффициент затухания
-        self.inside = False
-        self.type = 'aim'
+        self.inside = state
+        self.type = type
         self.last = pygame.time.get_ticks()
         self.cost = 500
 
@@ -268,17 +268,9 @@ def creating_splinters(a):
     """
     Создание двух осколков при уничтожении основной цели.
     """
-    splinter1 = Aim(screen, a.x - a.r, a.y)
-    splinter1.vy = -70
-    splinter1.health = 10
-    splinter1.inside = True
-    splinter1.type = 'left_splinter'
+    splinter1 = Aim(screen, "left_splinter", 10, -70, True, a.x - a.r, a.y)
     splinters.append(splinter1)
-    splinter2 = Aim(screen, a.x + a.r, a.y)
-    splinter2.vy = -70
-    splinter2.health = 10
-    splinter2.inside = True
-    splinter2.type = 'right_splinter'
+    splinter2 = Aim(screen, "right_splinter", 10, -70, True, a.x + a.r, a.y)
     splinters.append(splinter2)
 
 
@@ -365,7 +357,7 @@ count = 0
 counter = 0
 score = 0
 
-first_aim = Aim(screen)
+first_aim = Aim(screen, "aim", 20,  0, False)
 aims.append(first_aim)
 
 sec = pygame.font.SysFont("comicsansms", 18)
@@ -407,7 +399,7 @@ while not finished:
         finished = True
 
     if count % 300 == 0:
-        i = Aim(screen)
+        i = Aim(screen, "aim", 20,  0, False)
         aims.append(i)
 
     for event in pygame.event.get():
