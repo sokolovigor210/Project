@@ -62,8 +62,8 @@ class Gun:
         Конструктор класса Gun (пушка).
         Содержит координаты оси симметрии пушки, скорость пушки, цвет всех
         её составляющих, параметры её колёс, дула и балки, соединяющей колёса.
-        Помимо этого, содержит индикатор того, что пушка стреляет; поля, осуществляющие
-        эффект стрельбы с задержкой.
+        Помимо этого, содержит индикатор того, что пушка стреляет;
+        поля, осуществляющие эффект стрельбы с задержкой.
         """
         self.screen = screen
         self.x = WIDTH / 2
@@ -79,8 +79,8 @@ class Gun:
         self.m_width = 40
         self.m_low = 10
         self.state = False  # индикатор того, что пушка стреляет
-        self.last = pygame.time.get_ticks() # временные индикаторы
-        self.cooldown = 20                  # для задержки стрельбы
+        self.last = pygame.time.get_ticks()  # временные индикаторы
+        self.cooldown = 20                   # для задержки стрельбы
         self.health = 1  # здоровье пушки
         self.left_wheel = 0
         self.right_wheel = 0
@@ -146,15 +146,15 @@ class Gun:
 
 
 class Aim:
-    """
-    Конструктор класса Aim (цель).
-    Содержит начальные координаты цели (за пределами экрана), мгновенные
-    координаты цели, её радиус, количество жизней, цвет, скорость, параметр затухания
-    при соудареннии, а также индикатор того, что цель находится в пределах
-    игрового поля, индикатор типа цели (основная или осколок), "стоимость" цели
-    в очках.
-    """
     def __init__(self, screen, x=choice(AIM_X), y=50):
+        """
+        Конструктор класса Aim (цель).
+        Содержит начальные координаты цели (за пределами экрана), мгновенные
+        координаты цели, её радиус, количество жизней, цвет, скорость, параметр
+        затухания при соудареннии, а также индикатор того, что цель находится в
+        пределах игрового поля, индикатор типа цели (основная или осколок),
+        "стоимость" цели в очках.
+        """
         self.screen = screen
         self.x0 = x
         self.y0 = y
@@ -177,15 +177,15 @@ class Aim:
         Проверка, находится ли цель внутри игрового поля.
         """
         self.inside = True if self.x - self.r >= 0 or \
-                              self.x + self.r <= WIDTH else False
+            self.x + self.r <= WIDTH else False
 
     def moving(self, dt, obj):
         """
-        Осуществление движения целей в зависимости от места появления, а также её типа.
-        Реализация отскоков от игрового поля.
+        Осуществление движения целей в зависимости от места появления
+        а также её типа. Реализация отскоков от игрового поля.
         param dt: единица внутриигрового времени.
-        param obj: объект, с координатами которого сравниваются координаты цели
-                   для отскока
+        param obj: объект, с координатами которого сравниваются
+        координаты цели для отскока
         """
         if self.x0 == -10 and self.type == 'aim':
             self.x += self.vx * dt
@@ -200,7 +200,8 @@ class Aim:
         if self.inside:
             if self.y + self.r >= obj.y + obj.right_wheel.height / 2:
                 self.vy = -self.vy * self.ky
-                self.y -= self.y + self.r - (obj.y + obj.right_wheel.height / 2)
+                self.y -= \
+                    self.y + self.r - (obj.y + obj.right_wheel.height / 2)
             if self.x + self.r >= WIDTH:
                 self.vx = -self.vx
                 self.x -= self.x + self.r - WIDTH
@@ -210,11 +211,13 @@ class Aim:
 
     def check_player_lose(self, aims, gun):
         """
-        Реализация проигрыша игрока при условии, что цель опустилась слишком низко.
+        Реализация проигрыша игрока при условии, что цель
+        опустилась слишком низко.
         param aims: массив, где хранятся все основные цели
         param gun: пушка
         """
-        if (self.y - self.r) >= (gun.y - gun.muzzle.height) and abs(self.vy) <= 20:
+        if (self.y - self.r) >= (gun.y - gun.muzzle.height) and\
+                abs(self.vy) <= 20:
             aims.remove(a)
             return True
 
@@ -345,13 +348,14 @@ def save_last_result(name, score, counter):
     param score: результат игрока
     param counter: время игровой сессии игрока
     """
-    with open ('last result.txt', 'w') as file:
+    with open('last result.txt', 'w') as file:
         file.write("%s\n" % ('Имя игрока: ' + name))
-        file.write("%s\n" % ('Результат: ' + str(score) + str(' (') + 'целей уничтожено: '
+        file.write("%s\n" % ('Результат: ' + str(score)
+                             + str(' (') + 'целей уничтожено: '
                              + str(round(score / 500)) + ')'))
         file.write("%s\n" % ('Время игровой сессии: ' + str(counter)))
         print('Результат: ' + str(score) + str(' (') + 'целей уничтожено: '
-                             + str(round(score / 500)) + ')')
+                            + str(round(score / 500)) + ')')
         print('Время Вашей игровой сессии:', counter,  'секунд(-ы)')
 
 
@@ -399,14 +403,12 @@ while not finished:
         a.draw()
         a.check_coords()
         a.moving(dt, gun)
-        if a.check_player_lose(aims, gun) == True:
-            finished = True
+        finished = a.check_player_lose(aims, gun)
 
     for s in splinters:
         s.draw()
         s.moving(dt, gun)
-        if s.check_player_lose(aims, gun) == True:
-            finished = True
+        finished = s.check_player_lose(aims, gun)
 
     count += 1
 
