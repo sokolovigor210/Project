@@ -278,7 +278,7 @@ def creating_splinters(a):
     splinter2.vy = -70
     splinter2.health = 10
     splinter2.inside = True
-    splinter1.type = 'right_splinter'
+    splinter2.type = 'right_splinter'
     splinters.append(splinter2)
 
 
@@ -311,34 +311,22 @@ def update_time():
 
 def delete_dead_aims_and_update(massive):
     """
-    Функция реализует обновление ряда параметров при уничтожении основной цели:
-    - убирает уничтоженную цель из массива;
+    Функция реализует обновление ряда параметров
+    при уничтожении основной цели или осколка:
+    - убирает уничтоженную цель (осколок) из массива;
     - вызывает функцию обновления счёта;
     - вызывает функцию ускорения игры;
-    - вызывает функцию создания осколков.
-    param massive: массив с целями
+    - вызывает функцию создания осколков, если
+    уничтожена основная цель
+    param massive: массив с целями (или осколками)
     """
     for a in massive:
         if a.health <= 0:
             update_score(a)
             massive.remove(a)
             update_time()
-            creating_splinters(a)
-
-
-def delete_dead_splinters_and_update(massive):
-    """
-    Функция реализует обновление ряда параметров при уничтожении осколка:
-    - убирает уничтоженный осколок из массива;
-    - вызывает функцию обновления счёта;
-    - вызывает функцию ускорения игры;
-    param massive: массив с осколками
-    """
-    for s in massive:
-        if s.health <= 0:
-            update_score(s)
-            massive.remove(s)
-            update_time()
+            if a.type == "aim":
+                creating_splinters(a)
 
 
 def save_last_result(name, score, counter):
@@ -389,7 +377,7 @@ while not finished:
     screen.blit(img, (0, 0))
     gun.shooting()
     delete_dead_aims_and_update(aims)
-    delete_dead_splinters_and_update(splinters)
+    delete_dead_aims_and_update(splinters)
     print_score(score)
 
     gun.draw()
